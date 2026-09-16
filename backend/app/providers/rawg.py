@@ -1,0 +1,139 @@
+import json
+import os
+from datetime import date
+from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+from app.providers.game_provider import NormalizedGame, PaginatedGames
+
+
+class RawgProviderError(RuntimeError):
+    pass
+
+
+class RawgGameProvider:
+    _base_url = "https://api.rawg.io/api/games"
+    _provider_name = "rawg"
+
+    def __init__(self) -> None:
+        self._api_key = os.getenv("RAWG_API_KEY")
+        if not self._api_key:
+            raise RawgProviderError("RAWG_API_KEY is not configured")
+
+    def fetch_games(
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        search: str | None = None,
+        ordering: str | None = None,
+        genres: str | None = None,
+        platforms: str | None = None,
+        dates: str | None = None,
+    ) -> PaginatedGames:
+        if page < 1 or page_size < 1:
+            raise ValueError("page and page_size must be positive")
+
+        params = {
+            "key": self._api_key,
+            "page": page,
+            "page_size": page_size,
+        }
+        optional_params = {
+            "search": search,
+            "ordering": ordering,
+            "genres": genres,
+            "platforms": platforms,
+            "dates": dates,
+        }
+        params.update({key: value for key, value in optional_params.items() if value})
+
+        request = Request(
+            f"{self._base_url}?{urlencode(params)}",
+            headers={"Accept": "application/json"},
+        )
+
+        try:
+            with urlopen(request, timeout=15) as response:
+                payload = json.load(response)
+        except HTTPError as error:
+            raise RawgProviderError(
+                f"RAWG request failed with status {error.code}"
+            ) from error
+        except (URLError, TimeoutError) as error:
+            raise RawgProviderError("RAWG request could not be completed") from error
+        except json.JSONDecodeError as error:
+            raise RawgProviderError("RAWG returned invalid JSON") from error
+
+        if not isinstance(payload, dict):
+            raise RawgProviderError("RAWG returned an invalid response")
+
+        results = payload.get("results")
+        if not isinstance(results, list):
+            raise RawgProviderError("RAWG response is missing game results")
+
+        return PaginatedGames(
+            games=[self._normalize_game(game) for game in results],
+            page=page,
+            page_size=page_size,
+            total=self._parse_total(payload.get("count")),
+        )
+
+    def _normalize_game(self, game: Any) -> NormalizedGame:
+        if not isinstance(game, dict):
+            raise RawgProviderError("RAWG returned an invalid game")
+
+        try:
+            return NormalizedGame(
+                external_id=self._required_id(game),
+                external_provider=self._provider_name,
+                name=self._required_string(game, "name"),
+                slug=self._required_string(game, "slug"),
+                description=self._optional_string(
+                    game.get("description_raw", game.get("description"))
+                ),
+                release_date=self._parse_date(game.get("released")),
+                rating=self._optional_float(game.get("rating")),
+                rating_count=self._optional_int(game.get("ratings_count")),
+                metacritic=self._optional_int(game.get("metacritic")),
+                cover_image=self._optional_string(game.get("cover_image")),
+                background_image=self._optional_string(game.get("background_image")),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise RawgProviderError("RAWG returned an invalid game") from error
+
+    @staticmethod
+    def _required_string(game: dict[str, Any], field: str) -> str:
+        value = game[field]
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"RAWG game field {field} is invalid")
+        return value
+
+    @staticmethod
+    def _required_id(game: dict[str, Any]) -> str:
+        value = game["id"]
+        if value is None or isinstance(value, bool):
+            raise ValueError("RAWG game id is invalid")
+        return str(value)
+
+    @staticmethod
+    def _optional_string(value: Any) -> str | None:
+        return value if isinstance(value, str) else None
+
+    @staticmethod
+    def _optional_float(value: Any) -> float | None:
+        return float(value) if value is not None else None
+
+    @staticmethod
+    def _optional_int(value: Any) -> int | None:
+        return int(value) if value is not None else None
+
+    @staticmethod
+    def _parse_date(value: Any) -> date | None:
+        return date.fromisoformat(value) if isinstance(value, str) and value else None
+
+    @staticmethod
+    def _parse_total(value: Any) -> int:
+        return int(value) if value is not None else 0
