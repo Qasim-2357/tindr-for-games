@@ -3,7 +3,7 @@ import os
 from datetime import date
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from app.providers.game_provider import NormalizedGame, PaginatedGames
@@ -21,6 +21,12 @@ class RawgGameProvider:
         self._api_key = os.getenv("RAWG_API_KEY")
         if not self._api_key:
             raise RawgProviderError("RAWG_API_KEY is not configured")
+
+    def fetch_game(self, external_id: str) -> NormalizedGame:
+        payload = self._fetch_json(
+            f"{self._base_url}/{quote(external_id, safe='')}?{urlencode({'key': self._api_key})}"
+        )
+        return self._normalize_game(payload)
 
     def fetch_games(
         self,
@@ -50,10 +56,25 @@ class RawgGameProvider:
         }
         params.update({key: value for key, value in optional_params.items() if value})
 
-        request = Request(
-            f"{self._base_url}?{urlencode(params)}",
-            headers={"Accept": "application/json"},
+        payload = self._fetch_json(f"{self._base_url}?{urlencode(params)}")
+
+        if not isinstance(payload, dict):
+            raise RawgProviderError("RAWG returned an invalid response")
+
+        results = payload.get("results")
+        if not isinstance(results, list):
+            raise RawgProviderError("RAWG response is missing game results")
+
+        return PaginatedGames(
+            games=[self._normalize_game(game) for game in results],
+            page=page,
+            page_size=page_size,
+            total=self._parse_total(payload.get("count")),
         )
+
+    @staticmethod
+    def _fetch_json(url: str) -> dict[str, Any]:
+        request = Request(url, headers={"Accept": "application/json"})
 
         try:
             with urlopen(request, timeout=15) as response:
@@ -69,17 +90,7 @@ class RawgGameProvider:
 
         if not isinstance(payload, dict):
             raise RawgProviderError("RAWG returned an invalid response")
-
-        results = payload.get("results")
-        if not isinstance(results, list):
-            raise RawgProviderError("RAWG response is missing game results")
-
-        return PaginatedGames(
-            games=[self._normalize_game(game) for game in results],
-            page=page,
-            page_size=page_size,
-            total=self._parse_total(payload.get("count")),
-        )
+        return payload
 
     def _normalize_game(self, game: Any) -> NormalizedGame:
         if not isinstance(game, dict):
@@ -98,7 +109,9 @@ class RawgGameProvider:
                 rating=self._optional_float(game.get("rating")),
                 rating_count=self._optional_int(game.get("ratings_count")),
                 metacritic=self._optional_int(game.get("metacritic")),
-                cover_image=self._optional_string(game.get("cover_image")),
+                cover_image=self._optional_string(
+                    game.get("cover_image", game.get("background_image"))
+                ),
                 background_image=self._optional_string(game.get("background_image")),
             )
         except (KeyError, TypeError, ValueError) as error:

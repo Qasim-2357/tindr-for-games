@@ -27,6 +27,8 @@ class PaginatedGames:
 
 
 class GameProvider(Protocol):
+    def fetch_game(self, external_id: str) -> NormalizedGame: ...
+
     def fetch_games(
         self,
         *,

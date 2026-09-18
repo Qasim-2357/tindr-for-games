@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.game import Game
 from app.providers.rawg import RawgGameProvider, RawgProviderError
 from app.services.game_catalog import sync_catalog_page
+from app.services.game_persistence import save_game
 
 router = APIRouter(prefix="/games", tags=["games"])
 
@@ -191,6 +192,24 @@ def get_trending_games(
         page_size=provider_page.page_size,
         total=provider_page.total,
     )
+
+
+@router.get("/by-slug/{slug}", response_model=GameResponse)
+def get_game_by_slug(slug: str, db: Session = Depends(get_db)) -> GameResponse:
+    game = db.scalar(select(Game).where(Game.slug == slug))
+    if game is None:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    if game.external_provider == "rawg":
+        try:
+            game = save_game(db, RawgGameProvider().fetch_game(game.external_id))
+        except RawgProviderError as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Game provider is currently unavailable",
+            ) from error
+
+    return GameResponse.model_validate(game)
 
 
 @router.get("/{game_id}", response_model=GameResponse)
