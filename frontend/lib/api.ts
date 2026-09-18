@@ -24,12 +24,102 @@ export type GamesResponse = {
   total: number;
 };
 
+export type User = {
+  id: number;
+  username: string;
+  email: string;
+  identity_genre: string | null;
+  identity_color: string | null;
+};
+
+export type RegisterRequest = {
+  username: string;
+  email: string;
+  password: string;
+};
+
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type ProfileUpdateRequest = {
+  username?: string | null;
+  identity_genre?: string | null;
+  identity_color?: string | null;
+};
+
 function getApiUrl(): string {
   if (!apiUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured");
   }
 
   return apiUrl;
+}
+
+async function checkAuthResponse(
+  response: Response,
+  operation: string,
+): Promise<void> {
+  if (!response.ok) {
+    throw new Error(`${operation} failed with status ${response.status}`);
+  }
+}
+
+export async function register(payload: RegisterRequest): Promise<User> {
+  const response = await fetch(`${getApiUrl()}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  await checkAuthResponse(response, "Registration");
+  return response.json();
+}
+
+export async function login(payload: LoginRequest): Promise<User> {
+  const response = await fetch(`${getApiUrl()}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  await checkAuthResponse(response, "Login");
+  return response.json();
+}
+
+export async function logout(): Promise<void> {
+  const response = await fetch(`${getApiUrl()}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  await checkAuthResponse(response, "Logout");
+}
+
+export async function getCurrentUser(): Promise<User> {
+  const response = await fetch(`${getApiUrl()}/auth/me`, {
+    credentials: "include",
+  });
+
+  await checkAuthResponse(response, "Current user request");
+  return response.json();
+}
+
+export async function updateProfile(
+  payload: ProfileUpdateRequest,
+): Promise<User> {
+  const response = await fetch(`${getApiUrl()}/auth/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  await checkAuthResponse(response, "Profile update");
+  return response.json();
 }
 
 export async function getHealth(): Promise<{ status: string }> {

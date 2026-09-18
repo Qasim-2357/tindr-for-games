@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getHealth } from "@/lib/api";
+import Link from "next/link";
+import { getCurrentUser, getHealth, logout } from "@/lib/api";
+import type { User } from "@/lib/api";
 
 export default function Home() {
   const [status, setStatus] = useState<"loading" | "connected" | "disconnected">(
     "loading",
   );
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -30,6 +35,47 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    getCurrentUser()
+    .then((currentUser) => {
+      if (mounted) {
+        setUser(currentUser);
+      }
+    })
+    .catch(() => {
+      if (mounted) {
+        setUser(null);
+      }
+    })
+    .finally(() => {
+      if (mounted) {
+        setAuthLoading(false);
+      }
+    });
+
+    return () => {
+    mounted = false;
+    };
+  }, []);
+
+  async function handleLogout() {
+    setLogoutLoading(true);
+    try {
+    await logout();
+    try {
+      setUser(await getCurrentUser());
+    } catch {
+      setUser(null);
+    }
+    } catch {
+    // Keep the current user visible when logout cannot be completed.
+    } finally {
+    setLogoutLoading(false);
+    }
+  }
+
   const statusText =
     status === "loading"
       ? "Backend: Loading..."
@@ -42,6 +88,24 @@ export default function Home() {
       <h1 className="text-4xl font-bold">Tindr for Games</h1>
       <p className="text-lg text-gray-600">Discover your next game.</p>
       <p className="text-base text-gray-700">{statusText}</p>
+      {!authLoading &&
+        (user ? (
+          <div className="flex items-center gap-3">
+            <span>Welcome, {user.username}</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={logoutLoading}
+              className="rounded border px-3 py-1 disabled:opacity-50"
+            >
+              {logoutLoading ? "Logging out..." : "Logout"}
+            </button>
+          </div>
+        ) : (
+          <Link href="/login" className="underline">
+            Log in
+          </Link>
+        ))}
     </main>
   );
 }
