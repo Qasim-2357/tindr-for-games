@@ -7,6 +7,7 @@ load_repository_environment()
 
 from app.routers.auth import router as auth_router
 from app.routers.games import router as games_router
+from app.routers.games import wishlist_router
 
 app = FastAPI()
 
@@ -19,6 +20,7 @@ app.add_middleware(
 )
 
 app.include_router(games_router)
+app.include_router(wishlist_router)
 app.include_router(auth_router)
 
 
