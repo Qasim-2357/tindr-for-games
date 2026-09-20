@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import load_repository_environment
+
+load_repository_environment()
+
 from app.routers.auth import router as auth_router
 from app.routers.games import router as games_router
 

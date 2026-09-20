@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tindr for Games: frontend
 
-## Getting Started
+React + Vite + TypeScript + Tailwind v4 + Framer Motion.
+Talks to the existing FastAPI backend. **The backend is not modified.**
 
-First, run the development server:
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env      # VITE_API_URL=http://localhost:8000
+npm run dev               # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Start the backend separately (`uvicorn app.main:app --reload --port 8000`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Two things the backend forces
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Port 3000.** `app/main.py` only allows CORS from `http://localhost:3000`, so `vite.config.ts` pins the dev server to 3000 with `strictPort`. Open the app at `http://localhost:3000`, not `127.0.0.1:3000`.
+2. **Cookie auth.** Login sets an httpOnly `access_token` cookie, so every request uses `credentials: "include"` (see `src/api/client.ts`). The token lasts 30 minutes by default (`JWT_EXPIRE_MINUTES`), after which the app returns to the sign-in screen.
 
-## Learn More
+## How the vision maps to code
 
-To learn more about Next.js, take a look at the following resources:
+| Feature | File |
+|---|---|
+| Glowing neon-ring background | `src/components/FluidBackground.tsx` |
+| Glassmorphism system, buttons, inputs | `src/index.css` (`@layer components`) |
+| Cursor / touch glow + click ripple | `src/components/ClickBloom.tsx` |
+| Genre colours (matches backend `IDENTITY_GENRE_COLORS`) | `src/lib/genres.ts` |
+| Site re-lights in your genre colour | `src/context/ThemeContext.tsx` |
+| Fetch client for every backend endpoint | `src/api/client.ts` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app includes a public home page, authentication and genre onboarding, protected
+discovery with search, genre/platform filters, trending, popular and new-release
+tabs, game detail pages, and an editable user profile.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Visual preview without a backend
 
-## Deploy on Vercel
+`VITE_MOCK=true npm run dev` runs the whole UI against fake data (`src/api/mock.ts`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Rules to keep the glass working
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Never put `opacity`, `filter`, `mask` or `mix-blend-mode` on a **parent** of a glass element. Browsers then blur only that parent's content and the orbs stop showing through. Animate the glass element itself, or animate `transform` on parents.
+- Put custom CSS in `@layer components` so Tailwind utilities can override it.
+
+## Known backend limits (frontend works around them)
+
+- RAWG has no "horror" genre, so the Horror colour searches for `horror` instead of using `genres=`.
+- The backend has no like/swipe/library endpoints yet, so there's no swipe UI. `GameCard` is ready to host one when you add them.
