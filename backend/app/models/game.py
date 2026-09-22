@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, Float, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Date, DateTime, Float, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -24,6 +24,7 @@ class Game(Base):
     metacritic: Mapped[int | None] = mapped_column(Integer, nullable=True)
     cover_image: Mapped[str | None] = mapped_column(String, nullable=True)
     background_image: Mapped[str | None] = mapped_column(String, nullable=True)
+    screenshots: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

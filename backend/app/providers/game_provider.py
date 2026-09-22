@@ -16,6 +16,7 @@ class NormalizedGame:
     metacritic: int | None
     cover_image: str | None
     background_image: str | None
+    screenshots: list[str] | None = None
 
 
 @dataclass(frozen=True)

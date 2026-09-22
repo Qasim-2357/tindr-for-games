@@ -1,3 +1,4 @@
+from dataclasses import replace
 import json
 import os
 from datetime import date
@@ -26,7 +27,20 @@ class RawgGameProvider:
         payload = self._fetch_json(
             f"{self._base_url}/{quote(external_id, safe='')}?{urlencode({'key': self._api_key})}"
         )
-        return self._normalize_game(payload)
+        normalized_game = self._normalize_game(payload)
+        if normalized_game.screenshots is not None:
+            return normalized_game
+
+        try:
+            screenshots_payload = self._fetch_json(
+                f"{self._base_url}/{quote(external_id, safe='')}/screenshots?"
+                f"{urlencode({'key': self._api_key})}"
+            )
+            screenshots = self._screenshots(screenshots_payload.get("results"))
+        except RawgProviderError:
+            screenshots = None
+
+        return replace(normalized_game, screenshots=screenshots)
 
     def fetch_games(
         self,
@@ -113,6 +127,7 @@ class RawgGameProvider:
                     game.get("cover_image", game.get("background_image"))
                 ),
                 background_image=self._optional_string(game.get("background_image")),
+                screenshots=self._screenshots(game.get("short_screenshots")),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise RawgProviderError("RAWG returned an invalid game") from error
@@ -142,6 +157,13 @@ class RawgGameProvider:
     @staticmethod
     def _optional_int(value: Any) -> int | None:
         return int(value) if value is not None else None
+
+    @staticmethod
+    def _screenshots(value: Any) -> list[str] | None:
+        if not isinstance(value, list):
+            return None
+        images = [item["image"] for item in value if isinstance(item, dict) and isinstance(item.get("image"), str)]
+        return images or None
 
     @staticmethod
     def _parse_date(value: Any) -> date | None:

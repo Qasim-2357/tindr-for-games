@@ -31,6 +31,7 @@ def save_game(db: Session, normalized_game: NormalizedGame) -> Game:
         game.metacritic = normalized_game.metacritic
         game.cover_image = normalized_game.cover_image
         game.background_image = normalized_game.background_image
+        game.screenshots = normalized_game.screenshots
 
         db.commit()
         db.refresh(game)

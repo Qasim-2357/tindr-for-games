@@ -106,4 +106,11 @@ export const mockApi: Api = {
     if (!g) throw new ApiError(404, "Game not found");
     return strip(g);
   },
+  async wishlistStatus() { await wait(150); return { wishlisted: false }; },
+  async addToWishlist(gameId) {
+    await wait(200);
+    return { game_id: gameId, wishlisted: true, created_at: new Date().toISOString() };
+  },
+  async removeFromWishlist() { await wait(150); },
+  async wishlist() { await wait(250); return []; },
 };

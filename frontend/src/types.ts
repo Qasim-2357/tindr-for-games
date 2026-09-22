@@ -20,6 +20,7 @@ export interface Game {
   metacritic: number | null;
   cover_image: string | null;
   background_image: string | null;
+  screenshots?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,4 +40,24 @@ export interface GameQuery {
   genres?: string;
   platforms?: string;
   dates?: string;
+}
+
+export interface WishlistStatus {
+  wishlisted: boolean;
+}
+
+export interface WishlistResponse {
+  game_id: number;
+  wishlisted: boolean;
+  created_at: string;
+}
+
+export interface WishlistGame {
+  game_id: number;
+  name: string;
+  slug: string;
+  cover_image: string | null;
+  release_date: string | null;
+  rating: number | null;
+  created_at: string;
 }

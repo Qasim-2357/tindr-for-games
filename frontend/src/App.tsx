@@ -14,6 +14,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import DiscoverPage from "./pages/DiscoverPage";
 import GameDetailPage from "./pages/GameDetailPage";
 import ProfilePage from "./pages/ProfilePage";
+import WishlistPage from "./pages/WishlistPage";
 
 // The preview build runs from a single file, where hash routing is the only thing that works.
 const Router = IS_MOCK ? HashRouter : BrowserRouter;
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/onboarding" element={<Protected needsColor={false} nav={false}><OnboardingPage /></Protected>} />
         <Route path="/discover" element={<ApplicationPage><DiscoverPage /></ApplicationPage>} />
+        <Route path="/wishlist" element={<ApplicationPage><WishlistPage /></ApplicationPage>} />
         <Route path="/game/:slug" element={<ApplicationPage><GameDetailPage /></ApplicationPage>} />
         <Route path="/profile" element={<Protected nav={false}><ApplicationPage><ProfilePage /></ApplicationPage></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />

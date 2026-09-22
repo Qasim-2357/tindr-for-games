@@ -34,6 +34,7 @@ class GameResponse(BaseModel):
     metacritic: int | None
     cover_image: str | None
     background_image: str | None
+    screenshots: list[str] | None
     created_at: datetime
     updated_at: datetime
 

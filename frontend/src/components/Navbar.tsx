@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Compass, House, LogOut, UserRound } from "lucide-react";
+import { Compass, Heart, House, LogOut, UserRound } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { genreByKey } from "../lib/genres";
 import Logo from "./Logo";
+import GlassButton from "./GlassButton";
+import GlassCard from "./GlassCard";
 
 const links = [
   { to: "/", label: "Home", icon: House },
   { to: "/discover", label: "Discover", icon: Compass },
+  { to: "/wishlist", label: "Wishlist", icon: Heart },
 ];
 
 export default function Navbar() {
@@ -16,6 +19,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const genre = genreByKey(user?.identity_genre);
   const [scrolled, setScrolled] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 24);
     on();
@@ -23,7 +28,29 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", on);
   }, []);
 
+  useEffect(() => {
+    if (!confirmLogout || logoutBusy) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setConfirmLogout(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [confirmLogout, logoutBusy]);
+
+  const confirmSignOut = async () => {
+    if (logoutBusy) return;
+    setLogoutBusy(true);
+    try {
+      await logout();
+      navigate("/");
+    } finally {
+      setLogoutBusy(false);
+      setConfirmLogout(false);
+    }
+  };
+
   return (
+    <>
     <motion.header
       initial={{ y: -40 }}
       animate={{ y: 0 }}
@@ -75,7 +102,7 @@ export default function Navbar() {
           {user && (
             <motion.button
               whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}
-              onClick={async () => { await logout(); navigate("/"); }}
+              onClick={() => setConfirmLogout(true)}
               aria-label="Sign out"
               title="Sign out"
               className="ml-1 flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white"
@@ -86,5 +113,35 @@ export default function Navbar() {
         </div>
       </motion.nav>
     </motion.header>
+      {confirmLogout && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !logoutBusy) setConfirmLogout(false);
+          }}
+        >
+          <GlassCard
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sign-out-title"
+            className="w-full max-w-sm p-6 sm:p-7"
+          >
+            <h2 id="sign-out-title" className="font-display text-xl font-medium">Sign out?</h2>
+            <p className="mt-2 text-sm leading-6 text-white/60">
+              Are you sure you want to sign out of your account?
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <GlassButton type="button" onClick={() => setConfirmLogout(false)} disabled={logoutBusy}>
+                Cancel
+              </GlassButton>
+              <GlassButton type="button" variant="primary" loading={logoutBusy} onClick={confirmSignOut}>
+                Sign out
+              </GlassButton>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+    </>
   );
 }
