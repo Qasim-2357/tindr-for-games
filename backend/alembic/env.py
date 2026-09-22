@@ -6,6 +6,8 @@ from app.database import database_url, engine
 from app.models.game import Game
 from app.models.genre import Genre
 from app.models.base import Base
+from app.models.comment import Comment
+from app.models.comment_like import CommentLike
 from app.models.platform import Platform
 from app.models.user import User
 
