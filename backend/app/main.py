@@ -9,6 +9,7 @@ from app.routers.auth import router as auth_router
 from app.routers.comments import router as comments_router
 from app.routers.games import router as games_router
 from app.routers.games import wishlist_router
+from app.routers.recommendations import router as recommendations_router
 
 app = FastAPI()
 
@@ -24,6 +25,7 @@ app.include_router(games_router)
 app.include_router(wishlist_router)
 app.include_router(auth_router)
 app.include_router(comments_router)
+app.include_router(recommendations_router)
 
 
 @app.get("/health")

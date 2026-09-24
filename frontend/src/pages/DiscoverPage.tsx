@@ -143,7 +143,28 @@ export default function DiscoverPage() {
         page_size: PAGE_SIZE,
       });
     }
-    if (tab === "foryou" && genre) return api.games({ ...genre.query, ordering: "-rating", page: p, page_size: PAGE_SIZE });
+    if (tab === "foryou") {
+      return api.recommendations(p, PAGE_SIZE).then((recommendations) => ({
+        ...recommendations,
+        items: recommendations.items.map((game) => ({
+          id: game.id,
+          external_id: String(game.id),
+          external_provider: "recommendations",
+          name: game.name,
+          slug: game.slug,
+          description: null,
+          release_date: game.release_date,
+          rating: game.rating,
+          rating_count: null,
+          metacritic: null,
+          cover_image: game.cover_image,
+          background_image: null,
+          screenshots: null,
+          created_at: "",
+          updated_at: "",
+        })),
+      }));
+    }
     if (tab === "popular") return api.popular(p, PAGE_SIZE);
     if (tab === "new") return api.newReleases(p, PAGE_SIZE);
     return api.trending(p, PAGE_SIZE);

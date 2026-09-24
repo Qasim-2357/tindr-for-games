@@ -1,4 +1,4 @@
-import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, GameQuery, User, WishlistGame, WishlistResponse, WishlistStatus } from "../types";
+import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, GameQuery, RecommendationsPage, User, WishlistGame, WishlistResponse, WishlistStatus } from "../types";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
 
@@ -64,6 +64,8 @@ export const realApi = {
   trending: (page = 1, page_size = 20) => request<GamesPage>(`/games/trending${qs({ page, page_size })}`),
   popular: (page = 1, page_size = 20) => request<GamesPage>(`/games/popular${qs({ page, page_size })}`),
   newReleases: (page = 1, page_size = 20) => request<GamesPage>(`/games/new-releases${qs({ page, page_size })}`),
+  recommendations: (page = 1, page_size = 20) =>
+    request<RecommendationsPage>(`/recommendations${qs({ page, page_size })}`),
   gameBySlug: (slug: string) => request<Game>(`/games/by-slug/${encodeURIComponent(slug)}`),
   wishlistStatus: (gameId: number) => request<WishlistStatus>(`/games/${gameId}/wishlist`),
   addToWishlist: (gameId: number) =>

@@ -1,6 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Protocol
+
+
+@dataclass(frozen=True)
+class NormalizedMetadata:
+    external_id: str | None
+    name: str
+    slug: str | None
 
 
 @dataclass(frozen=True)
@@ -17,6 +24,8 @@ class NormalizedGame:
     cover_image: str | None
     background_image: str | None
     screenshots: list[str] | None = None
+    genres: list[NormalizedMetadata] = field(default_factory=list)
+    platforms: list[NormalizedMetadata] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

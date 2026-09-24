@@ -4,6 +4,7 @@ from alembic import context
 
 from app.database import database_url, engine
 from app.models.game import Game
+from app.models.game_metadata import GameGenre, GamePlatform
 from app.models.genre import Genre
 from app.models.base import Base
 from app.models.comment import Comment

@@ -1,7 +1,7 @@
 // Fake backend used ONLY by the visual preview (VITE_MOCK=true). Same shape as the real client.
 import type { Api } from "./client";
 import { ApiError } from "./client";
-import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, User } from "../types";
+import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, RecommendationsPage, User } from "../types";
 
 const wait = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
@@ -109,6 +109,25 @@ export const mockApi: Api = {
   async trending(p = 1, size = 20) { await wait(); return page(GAMES.map(strip), p, size); },
   async popular(p = 1, size = 20) { await wait(); return page([...GAMES].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).map(strip), p, size); },
   async newReleases(p = 1, size = 20) { await wait(); return page([...GAMES].sort((a, b) => (b.release_date ?? "").localeCompare(a.release_date ?? "")).map(strip), p, size); },
+  async recommendations(p = 1, size = 20): Promise<RecommendationsPage> {
+    await wait();
+    const items = [...GAMES]
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || (b.rating_count ?? 0) - (a.rating_count ?? 0))
+      .map((game) => ({
+        id: game.id,
+        name: game.name,
+        slug: game.slug,
+        cover_image: game.cover_image,
+        rating: game.rating,
+        release_date: game.release_date,
+      }));
+    return {
+      items: items.slice((p - 1) * size, p * size),
+      page: p,
+      page_size: size,
+      total: items.length,
+    };
+  },
   async gameBySlug(slug) {
     await wait(300);
     const g = GAMES.find((x) => x.slug === slug);

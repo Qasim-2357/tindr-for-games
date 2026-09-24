@@ -7,7 +7,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
-from app.providers.game_provider import NormalizedGame, PaginatedGames
+from app.providers.game_provider import NormalizedGame, NormalizedMetadata, PaginatedGames
 
 
 class RawgProviderError(RuntimeError):
@@ -128,6 +128,8 @@ class RawgGameProvider:
                 ),
                 background_image=self._optional_string(game.get("background_image")),
                 screenshots=self._screenshots(game.get("short_screenshots")),
+                genres=self._metadata(game.get("genres")),
+                platforms=self._platform_metadata(game.get("platforms")),
             )
         except (KeyError, TypeError, ValueError) as error:
             raise RawgProviderError("RAWG returned an invalid game") from error
@@ -164,6 +166,40 @@ class RawgGameProvider:
             return None
         images = [item["image"] for item in value if isinstance(item, dict) and isinstance(item.get("image"), str)]
         return images or None
+
+    @classmethod
+    def _metadata(cls, value: Any) -> list[NormalizedMetadata]:
+        if not isinstance(value, list):
+            return []
+        return [
+            NormalizedMetadata(
+                external_id=cls._optional_id(item.get("id")),
+                name=item["name"],
+                slug=cls._optional_string(item.get("slug")),
+            )
+            for item in value
+            if isinstance(item, dict)
+            and isinstance(item.get("name"), str)
+            and item["name"]
+        ]
+
+    @classmethod
+    def _platform_metadata(cls, value: Any) -> list[NormalizedMetadata]:
+        if not isinstance(value, list):
+            return []
+        return cls._metadata(
+            [
+                item.get("platform")
+                for item in value
+                if isinstance(item, dict) and isinstance(item.get("platform"), dict)
+            ]
+        )
+
+    @staticmethod
+    def _optional_id(value: Any) -> str | None:
+        if value is None or isinstance(value, bool):
+            return None
+        return str(value)
 
     @staticmethod
     def _parse_date(value: Any) -> date | None:

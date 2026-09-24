@@ -32,6 +32,22 @@ export interface GamesPage {
   total: number;
 }
 
+export interface RecommendationGame {
+  id: number;
+  name: string;
+  slug: string;
+  cover_image: string | null;
+  rating: number | null;
+  release_date: string | null;
+}
+
+export interface RecommendationsPage {
+  items: RecommendationGame[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
 export interface GameQuery {
   page?: number;
   page_size?: number;
