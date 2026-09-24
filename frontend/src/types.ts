@@ -61,3 +61,33 @@ export interface WishlistGame {
   rating: number | null;
   created_at: string;
 }
+
+export interface CommentUser {
+  id: number;
+  username: string;
+  identity_genre: string | null;
+  identity_color: string | null;
+}
+
+export interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: CommentUser;
+  like_count: number;
+  liked_by_me: boolean;
+  replies: Comment[];
+}
+
+export interface CommentsResponse {
+  items: Comment[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface CommentLikeResponse {
+  liked: boolean;
+  like_count: number;
+}

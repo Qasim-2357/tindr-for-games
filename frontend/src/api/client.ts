@@ -1,4 +1,4 @@
-import type { Game, GamesPage, GameQuery, User, WishlistGame, WishlistResponse, WishlistStatus } from "../types";
+import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, GameQuery, User, WishlistGame, WishlistResponse, WishlistStatus } from "../types";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
 
@@ -71,6 +71,20 @@ export const realApi = {
   removeFromWishlist: (gameId: number) =>
     request<void>(`/games/${gameId}/wishlist`, { method: "DELETE" }),
   wishlist: () => request<WishlistGame[]>("/wishlist"),
+  comments: (gameId: number, page = 1, pageSize = 20) =>
+    request<CommentsResponse>(`/games/${gameId}/comments${qs({ page, page_size: pageSize })}`),
+  createComment: (gameId: number, content: string) =>
+    request<Comment>(`/games/${gameId}/comments`, { method: "POST", body: JSON.stringify({ content }) }),
+  createReply: (commentId: number, content: string) =>
+    request<Comment>(`/comments/${commentId}/replies`, { method: "POST", body: JSON.stringify({ content }) }),
+  updateComment: (commentId: number, content: string) =>
+    request<Comment>(`/comments/${commentId}`, { method: "PATCH", body: JSON.stringify({ content }) }),
+  deleteComment: (commentId: number) =>
+    request<void>(`/comments/${commentId}`, { method: "DELETE" }),
+  likeComment: (commentId: number) =>
+    request<CommentLikeResponse>(`/comments/${commentId}/like`, { method: "POST" }),
+  unlikeComment: (commentId: number) =>
+    request<CommentLikeResponse>(`/comments/${commentId}/like`, { method: "DELETE" }),
 };
 
 export type Api = typeof realApi;

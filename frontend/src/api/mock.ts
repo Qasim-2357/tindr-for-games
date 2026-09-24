@@ -1,7 +1,7 @@
 // Fake backend used ONLY by the visual preview (VITE_MOCK=true). Same shape as the real client.
 import type { Api } from "./client";
 import { ApiError } from "./client";
-import type { Game, GamesPage, User } from "../types";
+import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, User } from "../types";
 
 const wait = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,6 +50,15 @@ const strip = (g: (typeof GAMES)[number]): Game => {
 
 let user: User | null = null;
 const accounts = new Map<string, { user: User; password: string }>();
+let nextCommentId = 1;
+const commentsByGame = new Map<number, Comment[]>();
+
+const commentResponse = (items: Comment[], pageNumber: number, pageSize: number): CommentsResponse => ({
+  items: items.slice((pageNumber - 1) * pageSize, pageNumber * pageSize),
+  page: pageNumber,
+  page_size: pageSize,
+  total: items.length,
+});
 
 export const mockApi: Api = {
   async register(username, email, password) {
@@ -113,4 +122,85 @@ export const mockApi: Api = {
   },
   async removeFromWishlist() { await wait(150); },
   async wishlist() { await wait(250); return []; },
+  async comments(gameId, pageNumber = 1, pageSize = 20) {
+    await wait(250);
+    return commentResponse(commentsByGame.get(gameId) ?? [], pageNumber, pageSize);
+  },
+  async createComment(gameId, content) {
+    await wait(250);
+    if (!user) throw new ApiError(401, "Could not validate credentials");
+    const comment: Comment = {
+      id: nextCommentId++,
+      content,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user: { id: user.id, username: user.username, identity_genre: user.identity_genre, identity_color: user.identity_color },
+      like_count: 0,
+      liked_by_me: false,
+      replies: [],
+    };
+    commentsByGame.set(gameId, [...(commentsByGame.get(gameId) ?? []), comment]);
+    return comment;
+  },
+  async createReply(commentId, content) {
+    await wait(250);
+    if (!user) throw new ApiError(401, "Could not validate credentials");
+    for (const comments of commentsByGame.values()) {
+      const parent = comments.find((comment) => comment.id === commentId);
+      if (parent) {
+        const reply: Comment = {
+          id: nextCommentId++,
+          content,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user: { id: user.id, username: user.username, identity_genre: user.identity_genre, identity_color: user.identity_color },
+          like_count: 0,
+          liked_by_me: false,
+          replies: [],
+        };
+        parent.replies.push(reply);
+        return reply;
+      }
+    }
+    throw new ApiError(404, "Comment not found");
+  },
+  async updateComment(commentId, content) {
+    await wait(200);
+    if (!user) throw new ApiError(401, "Could not validate credentials");
+    for (const comments of commentsByGame.values()) {
+      const comment = comments.flatMap((item) => [item, ...item.replies]).find((item) => item.id === commentId);
+      if (comment) {
+        if (comment.user.id !== user.id) throw new ApiError(403, "You can only edit your own comments");
+        comment.content = content;
+        comment.updated_at = new Date().toISOString();
+        return comment;
+      }
+    }
+    throw new ApiError(404, "Comment not found");
+  },
+  async deleteComment(commentId) {
+    await wait(200);
+    if (!user) throw new ApiError(401, "Could not validate credentials");
+    await this.updateComment(commentId, "This comment was deleted.");
+  },
+  async likeComment(commentId): Promise<CommentLikeResponse> {
+    await wait(150);
+    if (!user) throw new ApiError(401, "Could not validate credentials");
+    const comment = [...commentsByGame.values()].flatMap((items) => items.flatMap((item) => [item, ...item.replies])).find((item) => item.id === commentId);
+    if (!comment) throw new ApiError(404, "Comment not found");
+    if (comment.liked_by_me) throw new ApiError(409, "Comment already liked");
+    comment.liked_by_me = true;
+    comment.like_count += 1;
+    return { liked: true, like_count: comment.like_count };
+  },
+  async unlikeComment(commentId): Promise<CommentLikeResponse> {
+    await wait(150);
+    if (!user) throw new ApiError(401, "Could not validate credentials");
+    const comment = [...commentsByGame.values()].flatMap((items) => items.flatMap((item) => [item, ...item.replies])).find((item) => item.id === commentId);
+    if (!comment) throw new ApiError(404, "Comment not found");
+    if (!comment.liked_by_me) throw new ApiError(404, "Like not found");
+    comment.liked_by_me = false;
+    comment.like_count = Math.max(0, comment.like_count - 1);
+    return { liked: false, like_count: comment.like_count };
+  },
 };

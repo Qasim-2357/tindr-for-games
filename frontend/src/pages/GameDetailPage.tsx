@@ -9,6 +9,7 @@ import type { Game } from "../types";
 import GameCover from "../components/GameCover";
 import GlassCard from "../components/GlassCard";
 import Reveal from "../components/Reveal";
+import GameComments from "../components/GameComments";
 
 export default function GameDetailPage() {
   const { slug = "" } = useParams();
@@ -203,6 +204,7 @@ export default function GameDetailPage() {
           </div>
         </motion.div>
       )}
+      {game && <GameComments gameId={game.id} />}
     </div>
   );
 }
