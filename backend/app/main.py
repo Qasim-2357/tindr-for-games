@@ -6,6 +6,7 @@ from app.config import load_repository_environment
 load_repository_environment()
 
 from app.routers.auth import router as auth_router
+from app.routers.ai import router as ai_router
 from app.routers.comments import router as comments_router
 from app.routers.games import router as games_router
 from app.routers.games import wishlist_router
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(games_router)
 app.include_router(wishlist_router)
 app.include_router(auth_router)
+app.include_router(ai_router)
 app.include_router(comments_router)
 app.include_router(recommendations_router)
 
