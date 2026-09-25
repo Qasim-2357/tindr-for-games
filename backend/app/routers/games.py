@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict
@@ -12,9 +12,9 @@ from app.models.game import Game
 from app.models.user import User
 from app.models.wishlist import Wishlist
 from app.providers.rawg import RawgGameProvider, RawgProviderError
+from app.services.daily_game import get_daily_games
 from app.services.game_catalog import sync_catalog_page
 from app.services.game_persistence import save_game
-from app.services.daily_game import get_daily_games
 
 router = APIRouter(prefix="/games", tags=["games"])
 wishlist_router = APIRouter(tags=["wishlist"])
@@ -244,12 +244,21 @@ def get_daily_game(
     current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ) -> DailyGamesResponse:
-    daily_page = get_daily_games(db, current_user, page=page, page_size=page_size)
+    daily_page = get_daily_games(
+        db,
+        current_user,
+        page=page,
+        page_size=page_size,
+    )
+
     return DailyGamesResponse(
         items=[
             DailyGameResponse(
                 **GameResponse.model_validate(item.game).model_dump(),
-                genres=[DailyGenreResponse(name=genre.name, slug=genre.slug) for genre in item.genres],
+                genres=[
+                    DailyGenreResponse(name=genre.name, slug=genre.slug)
+                    for genre in item.genres
+                ],
             )
             for item in daily_page.games
         ],
@@ -279,11 +288,19 @@ def add_to_wishlist(
             Wishlist.game_id == game_id,
         )
     )
-    if existing is not None:
-        raise HTTPException(status_code=409, detail="Game is already wishlisted")
 
-    wishlist = Wishlist(user_id=current_user.id, game_id=game_id)
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Game is already wishlisted",
+        )
+
+    wishlist = Wishlist(
+        user_id=current_user.id,
+        game_id=game_id,
+    )
     db.add(wishlist)
+
     try:
         db.commit()
         db.refresh(wishlist)
@@ -317,33 +334,48 @@ def remove_from_wishlist(
             Wishlist.game_id == game_id,
         )
     )
+
     if wishlist is None:
-        raise HTTPException(status_code=404, detail="Game is not wishlisted")
+        raise HTTPException(
+            status_code=404,
+            detail="Game is not wishlisted",
+        )
 
     db.delete(wishlist)
     db.commit()
 
 
-@router.get("/{game_id}/wishlist", response_model=WishlistStatusResponse)
+@router.get(
+    "/{game_id}/wishlist",
+    response_model=WishlistStatusResponse,
+)
 def get_wishlist_status(
     game_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> WishlistStatusResponse:
     game = db.scalar(select(Game).where(Game.id == game_id))
+
     if game is None:
         raise HTTPException(status_code=404, detail="Game not found")
 
-    wishlisted = db.scalar(
-        select(Wishlist.id).where(
-            Wishlist.user_id == current_user.id,
-            Wishlist.game_id == game_id,
+    wishlisted = (
+        db.scalar(
+            select(Wishlist.id).where(
+                Wishlist.user_id == current_user.id,
+                Wishlist.game_id == game_id,
+            )
         )
-    ) is not None
+        is not None
+    )
+
     return WishlistStatusResponse(wishlisted=wishlisted)
 
 
-@wishlist_router.get("/wishlist", response_model=list[WishlistGameResponse])
+@wishlist_router.get(
+    "/wishlist",
+    response_model=list[WishlistGameResponse],
+)
 def get_wishlist(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -352,7 +384,10 @@ def get_wishlist(
         select(Wishlist, Game)
         .join(Game, Game.id == Wishlist.game_id)
         .where(Wishlist.user_id == current_user.id)
-        .order_by(Wishlist.created_at.desc(), Wishlist.id.desc())
+        .order_by(
+            Wishlist.created_at.desc(),
+            Wishlist.id.desc(),
+        )
     ).all()
 
     return [
@@ -369,15 +404,30 @@ def get_wishlist(
     ]
 
 
-@router.get("/by-slug/{slug}", response_model=GameResponse)
-def get_game_by_slug(slug: str, db: Session = Depends(get_db)) -> GameResponse:
-    game = db.scalar(select(Game).where(Game.slug == slug))
+@router.get(
+    "/by-slug/{slug}",
+    response_model=GameResponse,
+)
+def get_game_by_slug(
+    slug: str,
+    db: Session = Depends(get_db),
+) -> GameResponse:
+    game = db.scalar(
+        select(Game).where(Game.slug == slug)
+    )
+
     if game is None:
-        raise HTTPException(status_code=404, detail="Game not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Game not found",
+        )
 
     if game.external_provider == "rawg":
         try:
-            game = save_game(db, RawgGameProvider().fetch_game(game.external_id))
+            game = save_game(
+                db,
+                RawgGameProvider().fetch_game(game.external_id),
+            )
         except RawgProviderError as error:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -387,10 +437,22 @@ def get_game_by_slug(slug: str, db: Session = Depends(get_db)) -> GameResponse:
     return GameResponse.model_validate(game)
 
 
-@router.get("/{game_id}", response_model=GameResponse)
-def get_game(game_id: int, db: Session = Depends(get_db)) -> GameResponse:
-    game = db.scalar(select(Game).where(Game.id == game_id))
+@router.get(
+    "/{game_id}",
+    response_model=GameResponse,
+)
+def get_game(
+    game_id: int,
+    db: Session = Depends(get_db),
+) -> GameResponse:
+    game = db.scalar(
+        select(Game).where(Game.id == game_id)
+    )
+
     if game is None:
-        raise HTTPException(status_code=404, detail="Game not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Game not found",
+        )
 
     return GameResponse.model_validate(game)
