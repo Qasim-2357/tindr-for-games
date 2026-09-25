@@ -1,7 +1,7 @@
 // Fake backend used ONLY by the visual preview (VITE_MOCK=true). Same shape as the real client.
 import type { Api } from "./client";
 import { ApiError } from "./client";
-import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, RecommendationsPage, User } from "../types";
+import type { Comment, CommentLikeResponse, CommentsResponse, DailyGamesPage, Game, GamesPage, RecommendationsPage, User } from "../types";
 
 const wait = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
@@ -9,7 +9,7 @@ const A = ["Nightfall", "Ember", "Hollow", "Neon", "Iron", "Silent", "Crimson", 
 const B = ["Protocol", "Chronicles", "Gardens", "Vanguard", "Descent", "Kingdoms", "Harbor", "Circuit", "Oath", "Frontier", "Lullaby", "Tactics", "Odyssey", "Depths", "Reverie", "Signal"];
 const GENRE_KEYS = ["horror", "action", "adventure", "rpg", "strategy", "indie"];
 const DESC =
-  "A hand-built world where every choice leaves a mark. Explore forgotten places, meet strange companions, and shape a story that is different every time you play. This is placeholder text used only in the visual preview.";
+  "An atmospheric adventure where choices reshape a forgotten world and the people you meet along the way.";
 
 let s = 7;
 const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
@@ -31,6 +31,7 @@ const GAMES: (Game & { _g: string })[] = Array.from({ length: 72 }, (_, i) => {
     metacritic: rnd() > 0.25 ? Math.floor(62 + rnd() * 34) : null,
     cover_image: null,
     background_image: null,
+    screenshots: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     _g: GENRE_KEYS[i % GENRE_KEYS.length],
@@ -107,6 +108,11 @@ export const mockApi: Api = {
     return page(GAMES.filter((g) => g.name.toLowerCase().includes(query.toLowerCase())).map(strip), p, size);
   },
   async trending(p = 1, size = 20) { await wait(); return page(GAMES.map(strip), p, size); },
+  async daily(p = 1, size = 10): Promise<DailyGamesPage> {
+    await wait();
+    const items = GAMES.map((game) => ({ ...strip(game), genres: [{ name: game._g, slug: game._g }] }));
+    return { items: items.slice((p - 1) * size, p * size), page: p, page_size: size, total: items.length };
+  },
   async popular(p = 1, size = 20) { await wait(); return page([...GAMES].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).map(strip), p, size); },
   async newReleases(p = 1, size = 20) { await wait(); return page([...GAMES].sort((a, b) => (b.release_date ?? "").localeCompare(a.release_date ?? "")).map(strip), p, size); },
   async recommendations(p = 1, size = 20): Promise<RecommendationsPage> {

@@ -1,48 +1,34 @@
-# Tindr for Games: frontend
+# Tindr for Games frontend
 
-React + Vite + TypeScript + Tailwind v4 + Framer Motion.
-Talks to the existing FastAPI backend. **The backend is not modified.**
+React + Vite + TypeScript + Tailwind CSS v4. The frontend talks to the FastAPI backend using an environment-configured API URL and HTTP-only cookie authentication.
 
 ## Run it
 
 ```bash
-npm install
-cp .env.example .env      # VITE_API_URL=http://localhost:8000
-npm run dev               # http://localhost:3000
+cp .env.example .env
+npm ci
+npm run dev
 ```
 
-Start the backend separately (`uvicorn app.main:app --reload --port 8000`).
+The Vite server uses port 3000 to match the backend's current local CORS origin. Set `VITE_API_URL` in `.env` if the backend runs somewhere else.
 
-## Two things the backend forces
+For a local visual preview without the backend, run `VITE_MOCK=true npm run dev` (PowerShell: `$env:VITE_MOCK='true'; npm run dev`). Mock data and convenience sign-in behavior are for preview only.
 
-1. **Port 3000.** `app/main.py` only allows CORS from `http://localhost:3000`, so `vite.config.ts` pins the dev server to 3000 with `strictPort`. Open the app at `http://localhost:3000`, not `127.0.0.1:3000`.
-2. **Cookie auth.** Login sets an httpOnly `access_token` cookie, so every request uses `credentials: "include"` (see `src/api/client.ts`). The token lasts 30 minutes by default (`JWT_EXPIRE_MINUTES`), after which the app returns to the sign-in screen.
+## Main pieces
 
-## How the vision maps to code
-
-| Feature | File |
+| Area | Location |
 |---|---|
-| Glowing neon-ring background | `src/components/FluidBackground.tsx` |
-| Glassmorphism system, buttons, inputs | `src/index.css` (`@layer components`) |
-| Cursor / touch glow + click ripple | `src/components/ClickBloom.tsx` |
-| Genre colours (matches backend `IDENTITY_GENRE_COLORS`) | `src/lib/genres.ts` |
-| Site re-lights in your genre colour | `src/context/ThemeContext.tsx` |
-| Fetch client for every backend endpoint | `src/api/client.ts` |
+| Ambient WebGL background | `src/components/FluidBackground.tsx` |
+| Home discovery content | `src/pages/HomePage.tsx` |
+| Glass panels, buttons, and inputs | `src/index.css` |
+| Genre and identity colors | `src/lib/genres.ts`, `src/context/ThemeContext.tsx` |
+| API client and mock preview | `src/api/client.ts`, `src/api/mock.ts` |
+| Page routes | `src/App.tsx`, `src/pages/` |
 
-The app includes a public home page, authentication and genre onboarding, protected
-discovery with search, genre/platform filters, trending, popular and new-release
-tabs, game detail pages, and an editable user profile.
+The app includes Home, Discover, Daily Game, game details and comments, authentication, genre onboarding, profile, and wishlist pages. The root [README](../README.md) describes the backend and local setup.
 
-## Visual preview without a backend
+## Notes
 
-`VITE_MOCK=true npm run dev` runs the whole UI against fake data (`src/api/mock.ts`).
-
-## Rules to keep the glass working
-
-- Never put `opacity`, `filter`, `mask` or `mix-blend-mode` on a **parent** of a glass element. Browsers then blur only that parent's content and the orbs stop showing through. Animate the glass element itself, or animate `transform` on parents.
-- Put custom CSS in `@layer components` so Tailwind utilities can override it.
-
-## Known backend limits (frontend works around them)
-
-- RAWG has no "horror" genre, so the Horror colour searches for `horror` instead of using `genres=`.
-- The backend has no like/swipe/library endpoints yet, so there's no swipe UI. `GameCard` is ready to host one when you add them.
+- Do not place `opacity`, `filter`, `mask`, or `mix-blend-mode` on a parent of a glass panel; that changes how backdrop blur renders. Prefer animating the panel or a transform-only wrapper.
+- Keep component styles in Tailwind's `@layer components` so utility classes can override them.
+- `prefers-reduced-motion` is respected by the ambient background and Framer Motion configuration.

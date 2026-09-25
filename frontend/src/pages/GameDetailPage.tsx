@@ -20,15 +20,12 @@ export default function GameDetailPage() {
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
   const [wishlistError, setWishlistError] = useState<string | null>(null);
-  const [wishlistNotice, setWishlistNotice] = useState<string | null>(null);
+  const [wishlistNotice, setWishlistNotice] = useState(false);
   const [failedScreenshots, setFailedScreenshots] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setGame(null); setError(null);
-    api.gameBySlug(slug).then((data) => {
-      console.log("[GameDetailPage] API game:", data);
-      setGame(data);
-    }).catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't load this game."));
+    api.gameBySlug(slug).then(setGame).catch((e) => setError(e instanceof ApiError ? e.message : "Couldn't load this game."));
   }, [slug]);
 
   useEffect(() => {
@@ -39,7 +36,7 @@ export default function GameDetailPage() {
     let active = true;
     setWishlisted(false);
     setWishlistError(null);
-    setWishlistNotice(null);
+    setWishlistNotice(false);
     setFailedScreenshots(new Set());
     api.wishlistStatus(game.id)
       .then((status) => {
@@ -59,19 +56,19 @@ export default function GameDetailPage() {
 
   useEffect(() => {
     if (!wishlistNotice) return;
-    const timeout = window.setTimeout(() => setWishlistNotice(null), 3500);
+    const timeout = window.setTimeout(() => setWishlistNotice(false), 3500);
     return () => window.clearTimeout(timeout);
   }, [wishlistNotice]);
 
   const toggleWishlist = async () => {
     if (!game || wishlistBusy) return;
     if (!user) {
-      setWishlistNotice("Sign in to add games to your wishlist.");
+      setWishlistNotice(true);
       return;
     }
     setWishlistBusy(true);
     setWishlistError(null);
-    setWishlistNotice(null);
+    setWishlistNotice(false);
     try {
       if (wishlisted) {
         await api.removeFromWishlist(game.id);
@@ -95,15 +92,6 @@ export default function GameDetailPage() {
   const date = game?.release_date ? new Date(game.release_date).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "Release date TBA";
   const long = (game?.description?.length ?? 0) > 420;
   const visibleScreenshots = game?.screenshots?.filter((src) => !failedScreenshots.has(src)) ?? [];
-
-  console.log("[GameDetailPage] game:", game);
-  console.log("[GameDetailPage] screenshots:", game?.screenshots);
-  console.log("[GameDetailPage] screenshot count:", game?.screenshots?.length);
-  console.log("[GameDetailPage] open:", open);
-  console.log(
-    "[GameDetailPage] gallery condition:",
-    Boolean(open && game?.screenshots?.length)
-  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-28 sm:px-6 sm:pt-32">
@@ -187,7 +175,7 @@ export default function GameDetailPage() {
                 </button>
               </div>
               {wishlistError && <p role="status" className="mt-3 text-sm text-white/60">{wishlistError}</p>}
-              {wishlistNotice && <p role="status" className="mt-3 text-sm text-white/70">{wishlistNotice}</p>}
+              {wishlistNotice && <p role="status" className="mt-3 text-sm text-white/70"><Link to="/auth" className="text-white underline underline-offset-4">Sign in</Link> to add games to your wishlist.</p>}
             </GlassCard>
 
             {/* Piece: description */}

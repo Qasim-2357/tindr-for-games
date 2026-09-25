@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict
@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, get_optional_current_user
 from app.database import get_db
 from app.models.game import Game
 from app.models.user import User
@@ -14,6 +14,7 @@ from app.models.wishlist import Wishlist
 from app.providers.rawg import RawgGameProvider, RawgProviderError
 from app.services.game_catalog import sync_catalog_page
 from app.services.game_persistence import save_game
+from app.services.daily_game import get_daily_games
 
 router = APIRouter(prefix="/games", tags=["games"])
 wishlist_router = APIRouter(tags=["wishlist"])
@@ -46,6 +47,15 @@ class GamesResponse(BaseModel):
     total: int
 
 
+class DailyGenreResponse(BaseModel):
+    name: str
+    slug: str
+
+
+class DailyGameResponse(GameResponse):
+    genres: list[DailyGenreResponse]
+
+
 class WishlistStatusResponse(BaseModel):
     wishlisted: bool
 
@@ -64,6 +74,13 @@ class WishlistGameResponse(BaseModel):
     release_date: date | None
     rating: float | None
     created_at: datetime
+
+
+class DailyGamesResponse(BaseModel):
+    items: list[DailyGameResponse]
+    page: int
+    page_size: int
+    total: int
 
 
 @router.get("", response_model=GamesResponse)
@@ -217,6 +234,28 @@ def get_trending_games(
         page=provider_page.page,
         page_size=provider_page.page_size,
         total=provider_page.total,
+    )
+
+
+@router.get("/daily", response_model=DailyGamesResponse)
+def get_daily_game(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=10),
+    current_user: User | None = Depends(get_optional_current_user),
+    db: Session = Depends(get_db),
+) -> DailyGamesResponse:
+    daily_page = get_daily_games(db, current_user, page=page, page_size=page_size)
+    return DailyGamesResponse(
+        items=[
+            DailyGameResponse(
+                **GameResponse.model_validate(item.game).model_dump(),
+                genres=[DailyGenreResponse(name=genre.name, slug=genre.slug) for genre in item.genres],
+            )
+            for item in daily_page.games
+        ],
+        page=daily_page.page,
+        page_size=daily_page.page_size,
+        total=daily_page.total,
     )
 
 

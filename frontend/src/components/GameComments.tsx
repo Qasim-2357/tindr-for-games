@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Heart, MessageCircle, Pencil, RefreshCw, Trash2, X } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { genreByKey } from "../lib/genres";
@@ -172,7 +173,7 @@ export default function GameComments({ gameId }: { gameId: number }) {
     <GlassCard className="mt-5 p-5 sm:p-7">
       <div className="flex items-baseline justify-between gap-3">
         <div><h2 className="font-display text-xl font-medium">Comments</h2><p className="mt-1 text-sm text-white/45">Share your take on this game.</p></div>
-        {!user && <span className="text-right text-xs text-white/45">Sign in to join the conversation.</span>}
+        {!user && <span className="text-right text-xs text-white/45"><Link to="/auth" className="text-white/75 underline underline-offset-4">Sign in</Link> to join the conversation.</span>}
       </div>
       {user && form(content, setContent, (event) => void submit(event), "Share your thoughts", saving === "comment")}
       {actionError && <p role="alert" className="mt-3 text-sm text-white/60">{actionError}</p>}

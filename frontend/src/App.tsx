@@ -1,23 +1,24 @@
 import { useEffect, type ReactNode } from "react";
 import Lenis from "lenis";
 import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { IS_MOCK } from "./api";
 import FluidBackground from "./components/FluidBackground";
-import ClickBloom from "./components/ClickBloom";
 import Navbar from "./components/Navbar";
 import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
 import OnboardingPage from "./pages/OnboardingPage";
 import DiscoverPage from "./pages/DiscoverPage";
+import DailyGamePage from "./pages/DailyGamePage";
 import GameDetailPage from "./pages/GameDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import WishlistPage from "./pages/WishlistPage";
 
 // The preview build runs from a single file, where hash routing is the only thing that works.
 const Router = IS_MOCK ? HashRouter : BrowserRouter;
+const routerFuture = { v7_startTransition: true, v7_relativeSplatPath: true };
 
 function Splash() {
   return (
@@ -51,6 +52,19 @@ function Protected({ children, needsColor = true, nav = true }: { children: Reac
 function AppRoutes() {
   const { loading } = useAuth();
   const location = useLocation();
+  useEffect(() => {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    const titles: Record<string, string> = {
+      "/": "Tindr for Games",
+      "/auth": "Sign In — Tindr for Games",
+      "/onboarding": "Choose Your Colour — Tindr for Games",
+      "/discover": "Discover — Tindr for Games",
+      "/daily": "Daily Game — Tindr for Games",
+      "/wishlist": "Wishlist — Tindr for Games",
+      "/profile": "Profile — Tindr for Games",
+    };
+    document.title = titles[path] ?? (path.startsWith("/game/") ? "Game Details — Tindr for Games" : "Tindr for Games");
+  }, [location.pathname]);
   if (loading) return <Splash />;
   return (
     // Transform-only transition: opacity/filter on a wrapper would break the glass blur behind children.
@@ -60,6 +74,7 @@ function AppRoutes() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/onboarding" element={<Protected needsColor={false} nav={false}><OnboardingPage /></Protected>} />
         <Route path="/discover" element={<ApplicationPage><DiscoverPage /></ApplicationPage>} />
+        <Route path="/daily" element={<ApplicationPage><DailyGamePage /></ApplicationPage>} />
         <Route path="/wishlist" element={<ApplicationPage><WishlistPage /></ApplicationPage>} />
         <Route path="/game/:slug" element={<ApplicationPage><GameDetailPage /></ApplicationPage>} />
         <Route path="/profile" element={<Protected nav={false}><ApplicationPage><ProfilePage /></ApplicationPage></Protected>} />
@@ -83,17 +98,18 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <FluidBackground />
-        <div className="relative z-10 min-h-dvh">
-          <Router>
-            <AppRoutes />
-          </Router>
-        </div>
-        <ClickBloom />
-        {IS_MOCK && <div className="chip pointer-events-none fixed bottom-3 left-3 z-50 hidden text-white/60 sm:inline-flex">Preview with sample data</div>}
-      </ThemeProvider>
-    </AuthProvider>
+    <MotionConfig reducedMotion="user">
+      <AuthProvider>
+        <ThemeProvider>
+          <FluidBackground />
+          <div className="relative z-10 min-h-dvh">
+            <Router future={routerFuture}>
+              <AppRoutes />
+            </Router>
+          </div>
+          {IS_MOCK && <div className="chip pointer-events-none fixed bottom-3 left-3 z-50 hidden text-white/60 sm:inline-flex">Preview with sample data</div>}
+        </ThemeProvider>
+      </AuthProvider>
+    </MotionConfig>
   );
 }

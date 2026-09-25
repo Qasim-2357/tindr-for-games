@@ -21,6 +21,7 @@ function toGame(item: WishlistGame): Game {
     metacritic: null,
     cover_image: item.cover_image,
     background_image: null,
+    screenshots: null,
     created_at: item.created_at,
     updated_at: item.created_at,
   };
@@ -65,7 +66,7 @@ export default function WishlistPage() {
             <h2 className="font-display text-xl font-medium">Sign in to see your wishlist</h2>
             <p className="mt-2 text-sm text-white/55">Save games while you discover your next favorite.</p>
           </div>
-          <Link to="/auth"><GlassButton variant="primary">Sign in</GlassButton></Link>
+          <Link to="/auth" className="btn-primary no-underline">Sign in</Link>
         </GlassCard>
       )}
 
@@ -84,7 +85,7 @@ export default function WishlistPage() {
             <h2 className="font-display text-xl font-medium">Nothing saved yet</h2>
             <p className="mt-2 text-sm text-white/55">Add games to your wishlist while exploring.</p>
           </div>
-          <Link to="/discover"><GlassButton variant="primary">Discover games</GlassButton></Link>
+          <Link to="/discover" className="btn-primary no-underline">Discover games</Link>
         </GlassCard>
       )}
 

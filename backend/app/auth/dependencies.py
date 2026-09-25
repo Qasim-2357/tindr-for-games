@@ -1,4 +1,5 @@
 import os
+from typing import Annotated
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, status
@@ -37,3 +38,23 @@ def get_current_user(
     if user is None:
         raise credentials_error
     return user
+
+
+def get_optional_current_user(
+    access_token: Annotated[str | None, Cookie()] = None,
+    db: Session = Depends(get_db),
+) -> User | None:
+    if not access_token:
+        return None
+    try:
+        secret_key = os.getenv("JWT_SECRET_KEY")
+        if not secret_key:
+            return None
+        payload = jwt.decode(access_token, secret_key, algorithms=["HS256"])
+        subject = payload.get("sub")
+        user_id = int(subject)
+        if user_id < 1:
+            return None
+    except (jwt.InvalidTokenError, TypeError, ValueError):
+        return None
+    return db.scalar(select(User).where(User.id == user_id))

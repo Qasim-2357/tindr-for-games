@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, get_optional_current_user
 from app.database import get_db
 from app.models.comment import Comment
 from app.models.comment_like import CommentLike
@@ -14,19 +14,6 @@ from app.models.game import Game
 from app.models.user import User
 
 router = APIRouter(tags=["comments"])
-
-
-def get_optional_current_user(
-    access_token: str | None = Cookie(default=None),
-    db: Session = Depends(get_db),
-) -> User | None:
-    if access_token is None:
-        return None
-
-    try:
-        return get_current_user(access_token=access_token, db=db)
-    except HTTPException:
-        return None
 
 
 class CommentRequest(BaseModel):

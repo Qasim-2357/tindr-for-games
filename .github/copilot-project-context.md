@@ -40,7 +40,7 @@ Users should be able to:
 
 ### Game Details
 
-A game page may contain:
+The current game detail page shows:
 
 - Name
 - Description
@@ -50,10 +50,9 @@ A game page may contain:
 - Rating
 - Rating count
 - Metacritic score when available
-- Genres
-- Platforms
-- Screenshots
-- Relevant store links
+- Screenshots when available
+- Wishlist controls
+- Comments, replies and likes
 
 ### Authentication
 
@@ -64,7 +63,6 @@ Users should be able to:
 - Logout
 - View the current authenticated user
 - Edit their profile
-- Manage settings
 
 Authentication uses JWT with HTTP-only cookies.
 
@@ -123,17 +121,18 @@ Example user request:
 
 "I want a short atmospheric horror game with a strong story."
 
-The AI should interpret the request into structured preferences, for example:
+Gemini extracts the implemented structured preferences:
 
 {
-  "genres": ["horror", "psychological"],
-  "story_priority": "high",
-  "max_difficulty": "medium"
+  "required_genres": ["horror"],
+  "genre_alternatives": ["psychological horror"],
+  "keywords": ["short", "atmospheric", "story"],
+  "platforms": []
 }
 
-The backend should then search real games in our database.
+The backend matches and ranks games already stored in PostgreSQL.
 
-The AI may explain why the returned games match the user's request.
+The response does not include AI-written explanations.
 
 The AI must not invent games or recommend games that do not exist in
 our application data.
@@ -145,36 +144,38 @@ Do not introduce complex machine-learning infrastructure for the MVP.
 
 ## 3. Game Data
 
-RAWG is the initial external game metadata provider.
+RAWG is the only implemented external game metadata provider.
 
 External game APIs must be accessed by the FastAPI backend.
 
 The browser/frontend must NOT directly call RAWG, Steam, Twitch, or other
 external game APIs.
 
-External game data should be normalized into PostgreSQL.
+RAWG results are normalized and persisted in PostgreSQL. Catalog, search,
+trending, popular, new-release, and slug-detail requests currently call RAWG;
+daily and recommendation requests use stored database data.
 
-The application should not depend on calling an external provider every
-time a user opens a page.
+RAWG failures on those provider-backed requests return a service-unavailable
+response. Daily and recommendation results do not call RAWG.
 
 Provider-specific code should be isolated so another provider can be added
 later without rewriting the game system.
 
-Conceptually:
+Catalog synchronization follows this path:
 
-Game Router
+Game Router (selects the RAWG provider)
     ↓
-Game Service
+`game_catalog.sync_catalog_page`
     ↓
 Game Provider
     ↓
 RAWG Provider
 
-Steam and Twitch may be used later for specific information or popularity
-signals if they provide concrete value.
+The slug-detail refresh currently calls the RAWG provider directly from the
+router.
 
-Do not assume that an external provider has a "trending" endpoint.
-Tindr may calculate its own trending score using available signals.
+The current trending route asks RAWG to order by its "added" signal; the app
+does not calculate an independent trending score.
 
 ---
 
@@ -186,13 +187,14 @@ Do NOT turn the MVP into microservices.
 
 ### Frontend
 
-- Next.js
+- React 18
 - TypeScript
-- Tailwind CSS
-- shadcn/ui
-- TanStack Query
-- React Hook Form
-- Zod
+- Vite
+- Tailwind CSS 4
+- React Router 6
+- Framer Motion
+- Lenis
+- A WebGL2 ambient background
 
 ### Backend
 
@@ -209,8 +211,9 @@ Do NOT turn the MVP into microservices.
 
 ### Testing
 
-- Pytest
-- Playwright
+- `backend/tests/` uses `unittest` and is run by GitHub Actions.
+- GitHub Actions runs `npm ci` and `npm run build` for the frontend.
+- No browser automation suite is configured.
 
 ### Infrastructure
 
@@ -307,6 +310,7 @@ Important fields include:
 - metacritic
 - cover_image
 - background_image
+- screenshots
 - created_at
 - updated_at
 
@@ -343,18 +347,16 @@ A user should only be able to like a specific comment once.
 
 ## 8. Frontend Routes
 
-The intended MVP routes include:
+The current frontend routes are:
 
 - /
+- /auth (registration and sign-in)
+- /onboarding
 - /discover
-- /games/[slug]
-- /search
+- /daily
 - /wishlist
-- /profile/[username]
-- /settings
-- /login
-- /register
-- /ai
+- /game/:slug
+- /profile
 
 The exact route structure may evolve if there is a concrete technical
 reason, but avoid unnecessary route duplication.
@@ -382,18 +384,6 @@ Avoid excessive neon effects, excessive gradients, visual clutter, or
 effects that make the interface difficult to use.
 
 Glass panels should remain flat rather than tilted.
-
-### Interaction Effect
-
-When the user clicks or taps, a small localized soft color bloom/ripple
-should appear around the interaction point.
-
-It should feel like subtle color is generated from the interaction.
-
-It must not be an explosive or distracting click animation.
-
-Implement this as a reusable interaction effect rather than duplicating
-the effect across individual components.
 
 ---
 
@@ -466,9 +456,8 @@ document.
 
 The developer decides when a feature is actually being implemented.
 
-Do not run tests or Git commands unless explicitly requested.
-
-The developer manually runs tests and Git commands.
+Do not run tests or Git commands unless explicitly requested. GitHub Actions
+currently runs the backend `unittest` suite and frontend production build.
 
 ---
 

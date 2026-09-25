@@ -1,4 +1,4 @@
-import type { Comment, CommentLikeResponse, CommentsResponse, Game, GamesPage, GameQuery, RecommendationsPage, User, WishlistGame, WishlistResponse, WishlistStatus } from "../types";
+import type { AIRecommendationsPage, Comment, CommentLikeResponse, CommentsResponse, DailyGamesPage, Game, GamesPage, GameQuery, RecommendationsPage, User, WishlistGame, WishlistResponse, WishlistStatus } from "../types";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
 
@@ -62,10 +62,16 @@ export const realApi = {
   search: (query: string, page = 1, page_size = 20) =>
     request<GamesPage>(`/games/search${qs({ q: query, page, page_size })}`),
   trending: (page = 1, page_size = 20) => request<GamesPage>(`/games/trending${qs({ page, page_size })}`),
+  daily: (page = 1, page_size = 10) => request<DailyGamesPage>(`/games/daily${qs({ page, page_size })}`),
   popular: (page = 1, page_size = 20) => request<GamesPage>(`/games/popular${qs({ page, page_size })}`),
   newReleases: (page = 1, page_size = 20) => request<GamesPage>(`/games/new-releases${qs({ page, page_size })}`),
   recommendations: (page = 1, page_size = 20) =>
     request<RecommendationsPage>(`/recommendations${qs({ page, page_size })}`),
+  aiRecommendations: (query: string, page = 1, page_size = 20) =>
+    request<AIRecommendationsPage>(`/ai/recommendations${qs({ page, page_size })}`, {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    }),
   gameBySlug: (slug: string) => request<Game>(`/games/by-slug/${encodeURIComponent(slug)}`),
   wishlistStatus: (gameId: number) => request<WishlistStatus>(`/games/${gameId}/wishlist`),
   addToWishlist: (gameId: number) =>
@@ -89,4 +95,6 @@ export const realApi = {
     request<CommentLikeResponse>(`/comments/${commentId}/like`, { method: "DELETE" }),
 };
 
-export type Api = typeof realApi;
+export type Api = Omit<typeof realApi, "aiRecommendations"> & {
+  aiRecommendations?: typeof realApi.aiRecommendations;
+};

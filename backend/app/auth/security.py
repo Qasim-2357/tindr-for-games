@@ -42,10 +42,17 @@ def create_access_token(user_id: int) -> str:
 
 
 def get_cookie_settings() -> CookieSettings:
+    secure = os.getenv("AUTH_COOKIE_SECURE", "false").lower() == "true"
+    samesite = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower()
+    if samesite not in {"lax", "strict", "none"}:
+        raise RuntimeError("AUTH_COOKIE_SAMESITE must be lax, strict, or none")
+    if samesite == "none" and not secure:
+        raise RuntimeError("AUTH_COOKIE_SECURE must be true when AUTH_COOKIE_SAMESITE is none")
+
     return {
         "max_age": int(os.getenv("JWT_EXPIRE_MINUTES", "30")) * 60,
-        "secure": os.getenv("AUTH_COOKIE_SECURE", "false").lower() == "true",
+        "secure": secure,
         "httponly": True,
-        "samesite": "lax",
+        "samesite": samesite,
         "path": "/",
     }

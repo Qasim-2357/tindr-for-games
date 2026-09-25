@@ -3,11 +3,10 @@
 .env.*
 !.env.example
 
-# Node.js / Next.js
+# Node.js / Vite
 node_modules/
-.next/
-out/
 coverage/
+.next/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

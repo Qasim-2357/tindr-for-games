@@ -13,12 +13,8 @@
 # testing
 /coverage
 
-# next.js
+# Existing generated framework build artifacts in this workspace.
 /.next/
-/out/
-
-# production
-/build
 
 # misc
 .DS_Store
@@ -32,10 +28,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
-next-env.d.ts

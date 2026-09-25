@@ -20,13 +20,29 @@ export interface Game {
   metacritic: number | null;
   cover_image: string | null;
   background_image: string | null;
-  screenshots?: string[] | null;
+  screenshots: string[] | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface GamesPage {
   items: Game[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface DailyGenre {
+  name: string;
+  slug: string;
+}
+
+export interface DailyGame extends Game {
+  genres: DailyGenre[];
+}
+
+export interface DailyGamesPage {
+  items: DailyGame[];
   page: number;
   page_size: number;
   total: number;
@@ -43,6 +59,23 @@ export interface RecommendationGame {
 
 export interface RecommendationsPage {
   items: RecommendationGame[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface AIRecommendationGame {
+  id: number;
+  name: string;
+  slug: string;
+  cover_image: string | null;
+  rating: number | null;
+  release_date: string | null;
+}
+
+export interface AIRecommendationsPage {
+  query: string;
+  items: AIRecommendationGame[];
   page: number;
   page_size: number;
   total: number;

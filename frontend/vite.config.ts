@@ -3,8 +3,8 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
-// Backend CORS only allows http://localhost:3000, so the dev server MUST run on 3000.
-// `npm run build:preview` (VITE_MOCK=true) bundles everything into one HTML file.
+// Backend CORS defaults to http://localhost:3000; set CORS_ORIGINS for another dev origin.
+// VITE_MOCK=true enables hash routing and bundles the preview build into one HTML file.
 const isPreview = process.env.VITE_MOCK === "true";
 
 export default defineConfig({

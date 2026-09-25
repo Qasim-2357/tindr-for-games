@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertCircle, ChevronDown, RefreshCw, Search, SearchX, SlidersHorizontal, X } from "lucide-react";
+import { AlertCircle, ChevronDown, RefreshCw, Search, SearchX, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { api, ApiError } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { genreByKey } from "../lib/genres";
@@ -119,6 +119,9 @@ export default function DiscoverPage() {
   const [tab, setTab] = useState<Tab>(genre ? "foryou" : "trending");
   const [input, setInput] = useState("");
   const [query, setQuery] = useState("");
+  const [aiMode, setAiMode] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiQuery, setAiQuery] = useState("");
   const [filterGenre, setFilterGenre] = useState("");
   const [filterPlatform, setFilterPlatform] = useState("");
   const [items, setItems] = useState<Game[]>([]);
@@ -134,6 +137,35 @@ export default function DiscoverPage() {
   }, [input]);
 
   const fetchPage = useCallback((p: number) => {
+    if (aiMode) {
+      if (!aiQuery) {
+        return Promise.resolve({ items: [], page: p, page_size: PAGE_SIZE, total: 0 });
+      }
+      const aiRecommendations = api.aiRecommendations;
+      if (!aiRecommendations) {
+        return Promise.reject(new ApiError(0, "AI recommendations are unavailable."));
+      }
+      return aiRecommendations(aiQuery, p, PAGE_SIZE).then((recommendations) => ({
+        ...recommendations,
+        items: recommendations.items.map((game) => ({
+          id: game.id,
+          external_id: String(game.id),
+          external_provider: "ai",
+          name: game.name,
+          slug: game.slug,
+          description: null,
+          release_date: game.release_date,
+          rating: game.rating,
+          rating_count: null,
+          metacritic: null,
+          cover_image: game.cover_image,
+          background_image: null,
+          screenshots: null,
+          created_at: "",
+          updated_at: "",
+        })),
+      }));
+    }
     if (query || filterGenre || filterPlatform) {
       return api.games({
         search: query || undefined,
@@ -168,7 +200,7 @@ export default function DiscoverPage() {
     if (tab === "popular") return api.popular(p, PAGE_SIZE);
     if (tab === "new") return api.newReleases(p, PAGE_SIZE);
     return api.trending(p, PAGE_SIZE);
-  }, [query, tab, genre, filterGenre, filterPlatform]);
+  }, [aiMode, aiQuery, query, tab, genre, filterGenre, filterPlatform]);
 
   const load = useCallback(async (p: number) => {
     const id = ++reqId.current;
@@ -186,7 +218,17 @@ export default function DiscoverPage() {
     }
   }, [fetchPage]);
 
-  useEffect(() => { setItems([]); load(1); }, [load]);
+  useEffect(() => {
+    reqId.current += 1;
+    setItems([]);
+    if (aiMode && !aiQuery) {
+      setTotal(0);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    load(1);
+  }, [aiMode, aiQuery, load]);
 
   const searching = query.length > 0;
 
@@ -205,17 +247,69 @@ export default function DiscoverPage() {
 
         <div className="flex flex-col gap-4 lg:flex-row">
           <GlassCard variants={piece} className="relative flex-1 rounded-2xl">
-            <Search className="pointer-events-none absolute left-5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-white/60" />
-            <input
-              className="h-14 w-full rounded-2xl bg-transparent pl-12 pr-5 text-base text-white placeholder:text-white/40 focus:outline-none"
-              placeholder="Search for a game"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              aria-label="Search games"
-            />
+            {aiMode ? (
+              <form
+                className="flex h-14 items-center gap-3 px-4"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const trimmed = aiInput.trim();
+                  if (!trimmed) return;
+                  setAiQuery(trimmed);
+                }}
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-white/60" />
+                <input
+                  className="ai-input min-w-0 flex-1 bg-transparent text-base text-white placeholder:text-white/40 focus:outline-none"
+                  placeholder="Describe what you want to play..."
+                  value={aiInput}
+                  maxLength={1000}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  aria-label="Describe what you want to play"
+                />
+                <GlassButton type="submit" className="!h-9 !px-3 text-sm">Find games</GlassButton>
+              </form>
+            ) : (
+              <>
+                <Search className="pointer-events-none absolute left-5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-white/60" />
+                <input
+                  className="h-14 w-full rounded-2xl bg-transparent pl-12 pr-24 text-base text-white placeholder:text-white/40 focus:outline-none"
+                  placeholder="Search for a game"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  aria-label="Search games"
+                />
+                <button
+                  type="button"
+                  className="btn-glass absolute right-2 top-1/2 !h-10 -translate-y-1/2 !rounded-xl !px-3 text-sm"
+                  onClick={() => {
+                    setAiMode(true);
+                    setInput("");
+                    setQuery("");
+                    setAiInput("");
+                    setAiQuery("");
+                  }}
+                  aria-label="Ask AI for game recommendations"
+                >
+                  <Sparkles className="h-4 w-4" /> Ask AI
+                </button>
+              </>
+            )}
           </GlassCard>
 
-          {!searching && (
+          {aiMode ? (
+            <GlassButton
+              variants={piece}
+              onClick={() => {
+                setAiMode(false);
+                setAiInput("");
+                setAiQuery("");
+                setItems([]);
+              }}
+              className="self-start"
+            >
+              <X className="h-4 w-4" /> Normal search
+            </GlassButton>
+          ) : !searching && (
             <GlassCard variants={piece} className="inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-2xl p-1.5">
               {tabs.map((t) => (
                 <button key={t.id} onClick={() => setTab(t.id)} className="relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors" style={{ color: tab === t.id ? "#fff" : "rgb(255 255 255 / 0.55)" }}>
@@ -235,7 +329,7 @@ export default function DiscoverPage() {
         </div>
       </motion.div>
 
-      <div className="glass-control mt-5 flex flex-wrap items-end gap-3 rounded-2xl p-3">
+      {!aiMode && <div className="glass-control mt-5 flex flex-wrap items-end gap-3 rounded-2xl p-3">
         <div className="flex items-center gap-2 pr-1 text-sm text-white/60">
           <SlidersHorizontal className="h-4 w-4" />
           Filters
@@ -261,10 +355,10 @@ export default function DiscoverPage() {
             <X className="h-4 w-4" /> Clear
           </button>
         )}
-      </div>
+      </div>}
 
-      <p aria-live="polite" className={`text-sm text-white/55 ${searching || filterGenre || filterPlatform ? "mt-6" : "sr-only"}`}>
-        {searching ? `Results for “${query}”` : filterGenre || filterPlatform ? "Filtered games" : ""}
+      <p aria-live="polite" className={`text-sm text-white/55 ${aiQuery || searching || filterGenre || filterPlatform ? "mt-6" : "sr-only"}`}>
+        {aiQuery ? `AI results for “${aiQuery}”` : searching ? `Results for “${query}”` : filterGenre || filterPlatform ? "Filtered games" : ""}
       </p>
 
       {/* Games: each is a picture piece + an info piece */}
@@ -281,7 +375,15 @@ export default function DiscoverPage() {
         </GlassCard>
       )}
 
-      {!loading && !error && items.length === 0 && (
+      {aiMode && !aiQuery && (
+        <GlassCard initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mt-8 flex max-w-md flex-col items-center gap-3 p-8 text-center">
+          <Sparkles className="h-6 w-6 text-white/60" />
+          <p className="text-white/80">Describe what you want to play</p>
+          <p className="text-sm text-white/45">Tell us the mood, genre, or kind of world you are looking for.</p>
+        </GlassCard>
+      )}
+
+      {!aiMode && !loading && !error && items.length === 0 && (
         <GlassCard initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mt-8 flex max-w-md flex-col items-center gap-3 p-8 text-center">
           <SearchX className="h-6 w-6 text-white/60" />
           <p className="text-white/80">No games found. Try another search or tab.</p>

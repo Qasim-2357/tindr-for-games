@@ -2,7 +2,7 @@ from datetime import date
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 
 
 class AIRecommendationRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=1, max_length=1000)
 
 
 class AIRecommendationGameResponse(BaseModel):

@@ -21,7 +21,7 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The background lights and click bursts lean toward the colour you pick.
+  // The background lights lean toward the colour you pick.
   const choose = (key: string) => { setPicked(key); setPreview(genreByKey(key)!.hex); };
   useEffect(() => () => setPreview(null), [setPreview]);
 

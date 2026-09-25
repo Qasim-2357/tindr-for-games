@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="spectrum" x1="10" y1="50" x2="54" y2="14" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#70dfff" />
+      <stop offset=".28" stop-color="#9782ff" />
+      <stop offset=".56" stop-color="#ef8bd4" />
+      <stop offset=".78" stop-color="#ffb17b" />
+      <stop offset="1" stop-color="#70dfff" />
+    </linearGradient>
+    <filter id="atmosphere" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" />
+    </filter>
+    <filter id="softEdge" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.2" />
+    </filter>
+  </defs>
+
+  <rect width="64" height="64" fill="#060608" />
+  <circle cx="32" cy="32" r="19" fill="none" stroke="url(#spectrum)" stroke-width="5" opacity=".42" filter="url(#atmosphere)" />
+  <circle cx="32" cy="32" r="19" fill="none" stroke="url(#spectrum)" stroke-width="3.5" opacity=".58" filter="url(#softEdge)" />
+  <circle cx="32" cy="32" r="19" fill="none" stroke="url(#spectrum)" stroke-width="2.2" />
+</svg>

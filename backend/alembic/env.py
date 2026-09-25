@@ -2,6 +2,10 @@ from logging.config import fileConfig
 
 from alembic import context
 
+from app.config import load_repository_environment
+
+load_repository_environment()
+
 from app.database import database_url, engine
 from app.models.game import Game
 from app.models.game_metadata import GameGenre, GamePlatform
@@ -11,6 +15,7 @@ from app.models.comment import Comment
 from app.models.comment_like import CommentLike
 from app.models.platform import Platform
 from app.models.user import User
+from app.models.wishlist import Wishlist
 
 config = context.config
 
