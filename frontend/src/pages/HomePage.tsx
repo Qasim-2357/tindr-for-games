@@ -403,7 +403,7 @@ export default function HomePage() {
         )}
       </section>
 
-      <section aria-labelledby="community-heading" className="mt-20 border-y border-white/10 py-12 sm:mt-28 sm:py-16">
+      <section aria-labelledby="community-heading" className="glass mt-20 py-12 sm:mt-28 sm:py-16">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex max-w-2xl items-start gap-4">
             <span className="glass-control mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white/70">
